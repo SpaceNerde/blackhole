@@ -5,10 +5,11 @@ use symphonia::core::io::MediaSourceStream;
 use symphonia::core::meta::MetadataOptions;
 use symphonia::core::probe::Hint;
 use symphonia::core::audio::SampleBuffer;
+use plotters::prelude::*;
 
 fn main() {
     //--------------------------------------------------------------------
-    //  STUFF
+    //  WEIRD MATH NERD STUFF
     //--------------------------------------------------------------------
 
     let args: Vec<String> = std::env::args().collect();
@@ -46,8 +47,23 @@ fn main() {
     let mut sample_count = 0;
     let mut sample_buf = None;
 
+    // setup plotters
+    let root = BitMapBackend::gif("plot.gif", (800, 600), 1000 / 10).unwrap().into_drawing_area();
+    root.fill(&WHITE).unwrap();
+
+    let mut chart_builder = ChartBuilder::on(&root);
+    chart_builder.caption("Blackhole", ("sans-serif", 50).into_font());
+    chart_builder.margin(10);
+    chart_builder.x_label_area_size(30);
+    chart_builder.y_label_area_size(30);
+    
+    let mut chart_context = chart_builder.build_cartesian_2d(0.0..400.0, -1.0..1.0).unwrap();
+    chart_context.configure_mesh().draw().unwrap();
+
+
     // Main decoding loop
     loop {
+        
         let packet = format.next_packet().unwrap();
 
         if packet.track_id() != track_id {
@@ -66,12 +82,30 @@ fn main() {
                 if let Some(buf) = &mut sample_buf {
                     buf.copy_interleaved_ref(audio_buf);
 
+                    
                     sample_count += buf.samples().len();
-                    println!("Decoded {} samples", sample_count);
+//                    println!("Decoded {} samples", sample_count);                    
+                    if sample_count >= 20000000 {
+                        while i < sample_count {
+                            for i in 
+                        }
+                        let points: Vec<_> = buf.samples().into_iter().enumerate()
+                            .map(|(i, sample)| (sample_count as f64 + i as f64, *sample as f64))
+                            .collect();
+                        
+                        chart_context.draw_series(LineSeries::new(points, BLACK)).unwrap();
+
+                        root.present().unwrap();
+                        break;
+                    }
+
+
                 }
             }
             Err(Error::DecodeError(_)) => (),
             Err(_) => break,
         }
     }
+
+    
 }
