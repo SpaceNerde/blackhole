@@ -48,7 +48,7 @@ fn main() {
     let mut sample_buf = None;
 
     // setup plotters
-    let root = BitMapBackend::gif("plot.gif", (800, 600), 1000 / 10).unwrap().into_drawing_area();
+    let root = BitMapBackend::new("plot.png", (800, 600)).into_drawing_area();
     root.fill(&WHITE).unwrap();
 
     let mut chart_builder = ChartBuilder::on(&root);
@@ -57,14 +57,24 @@ fn main() {
     chart_builder.x_label_area_size(30);
     chart_builder.y_label_area_size(30);
     
-    let mut chart_context = chart_builder.build_cartesian_2d(0.0..400.0, -1.0..1.0).unwrap();
+    let mut chart_context = chart_builder.build_cartesian_2d(0.0..10000.0, -0.1..0.1).unwrap();
     chart_context.configure_mesh().draw().unwrap();
 
 
     // Main decoding loop
     loop {
-        
-        let packet = format.next_packet().unwrap();
+        let packet = match format.next_packet() {
+            Ok(packet) => packet,
+            Err(Error::ResetRequired) => {
+                unimplemented!();
+            },
+            Err(Error::IoError(_)) => {
+                break;
+            },
+            Err(err) => {
+                panic!("{}", err);
+            }
+        };
 
         if packet.track_id() != track_id {
             continue;
@@ -85,27 +95,25 @@ fn main() {
                     
                     sample_count += buf.samples().len();
 //                    println!("Decoded {} samples", sample_count);                    
-                    if sample_count >= 20000000 {
-                        while i < sample_count {
-                            for i in 
-                        }
-                        let points: Vec<_> = buf.samples().into_iter().enumerate()
-                            .map(|(i, sample)| (sample_count as f64 + i as f64, *sample as f64))
-                            .collect();
                         
-                        chart_context.draw_series(LineSeries::new(points, BLACK)).unwrap();
-
-                        root.present().unwrap();
-                        break;
-                    }
-
-
                 }
             }
             Err(Error::DecodeError(_)) => (),
-            Err(_) => break,
+            Err(_) => { 
+                break;
+            },
         }
     }
+    //println!("{:?}", sample_buf.unwrap().samples());
 
+    let points: Vec<_> = sample_buf.unwrap().samples().into_iter().enumerate()
+        .map(|(i, sample)| (i as f64, *sample as f64))
+        .collect();
     
+    println!("{:?}", &points);
+
+    chart_context.draw_series(LineSeries::new(points, BLACK)).unwrap();
+
+    root.present().unwrap();
+
 }
