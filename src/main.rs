@@ -6,6 +6,7 @@ use symphonia::core::meta::MetadataOptions;
 use symphonia::core::probe::Hint;
 use symphonia::core::audio::SampleBuffer;
 use plotters::prelude::*;
+use std::f64::consts;
 
 fn main() {
     //--------------------------------------------------------------------
@@ -104,16 +105,25 @@ fn main() {
             },
         }
     }
-    //println!("{:?}", sample_buf.unwrap().samples());
-
-    let points: Vec<_> = sample_buf.unwrap().samples().into_iter().enumerate()
-        .map(|(i, sample)| (i as f64, *sample as f64))
-        .collect();
     
-    println!("{:?}", &points);
+    match sample_buf {
+        Some(ref buf) => {
+            let points: Vec<_> = sample_buf.unwrap().samples().into_iter().enumerate()
+                .map(|(i, sample)| (i as f64, *sample as f64))
+                .collect();
 
-    chart_context.draw_series(LineSeries::new(points, BLACK)).unwrap();
+            chart_context.draw_series(LineSeries::new(points, BLACK)).unwrap();
 
-    root.present().unwrap();
+            root.present().unwrap();
 
+            let mut fft_samples = &buf.clear();
+            let a = buf.len();
+
+            for i in 0..sample_count - 1 {
+
+            }
+
+        }
+        None => {}
+    }
 }
