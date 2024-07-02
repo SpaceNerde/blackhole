@@ -7,6 +7,11 @@ use symphonia::core::probe::Hint;
 use symphonia::core::audio::SampleBuffer;
 use plotters::prelude::*;
 use std::f64::consts;
+use num::complex::*;
+use num::ToPrimitive;
+use std::f32::consts::PI;
+use rustfft::{FftPlanner, num_complex::Complex};
+use std::sync::Arc;
 
 fn main() {
     //--------------------------------------------------------------------
@@ -49,7 +54,8 @@ fn main() {
     let mut sample_buf = None;
 
     // setup plotters
-    let root = BitMapBackend::new("plot.png", (800, 600)).into_drawing_area();
+    // pic 1
+    let root = BitMapBackend::new("plot_1.png", (800, 600)).into_drawing_area();
     root.fill(&WHITE).unwrap();
 
     let mut chart_builder = ChartBuilder::on(&root);
@@ -60,6 +66,20 @@ fn main() {
     
     let mut chart_context = chart_builder.build_cartesian_2d(0.0..10000.0, -0.1..0.1).unwrap();
     chart_context.configure_mesh().draw().unwrap();
+    
+    // pic 2
+    let root1 = BitMapBackend::new("plot_2.png", (800, 600)).into_drawing_area();
+    root1.fill(&WHITE).unwrap();
+
+    let mut chart_builder1 = ChartBuilder::on(&root1);
+    chart_builder1.caption("Blackhole", ("sans-serif", 50).into_font());
+    chart_builder1.margin(10);
+    chart_builder1.x_label_area_size(30);
+    chart_builder1.y_label_area_size(30);
+    
+    let mut chart_context1 = chart_builder1.build_cartesian_2d(0.0..10000.0, -0.1..0.1).unwrap();
+    chart_context1.configure_mesh().draw().unwrap();
+
 
 
     // Main decoding loop
@@ -108,7 +128,7 @@ fn main() {
     
     match sample_buf {
         Some(ref buf) => {
-            let points: Vec<_> = sample_buf.unwrap().samples().into_iter().enumerate()
+            let points: Vec<_> = buf.samples().into_iter().enumerate()
                 .map(|(i, sample)| (i as f64, *sample as f64))
                 .collect();
 
@@ -116,14 +136,27 @@ fn main() {
 
             root.present().unwrap();
 
-            let mut fft_samples = &buf.clear();
-            let a = buf.len();
+            let mut planner = FftPlanner::new();
+            let fft = planner.plan_fft_forward(buf.len());
 
-            for i in 0..sample_count - 1 {
+            let samples: Vec<f32> = buf.samples().to_vec();
 
-            }
+            // Convert f32 samples to Complex<f32>
+            let mut complex_samples: Vec<Complex<f32>> = samples.iter().map(|&x| Complex::new(x, 0.0)).collect();
+
+            fft.process(&mut complex_samples);
+
+            let points_1: Vec<_> = complex_samples.iter().enumerate()
+                .map(|(i, sample)| (i as f64, sample.re() as f64))
+                .collect();
+            
+            chart_context1.draw_series(LineSeries::new(points_1, BLACK)).unwrap();
+
+            root1.present().unwrap();
+
 
         }
         None => {}
     }
 }
+
