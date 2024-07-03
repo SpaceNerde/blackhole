@@ -1,17 +1,14 @@
+use num::complex::*;
+use num::integer::Roots;
+use plotters::prelude::*;
+use rustfft::{num_complex::Complex, FftPlanner};
+use symphonia::core::audio::SampleBuffer;
 use symphonia::core::codecs::{DecoderOptions, CODEC_TYPE_NULL};
 use symphonia::core::errors::Error;
 use symphonia::core::formats::FormatOptions;
 use symphonia::core::io::MediaSourceStream;
 use symphonia::core::meta::MetadataOptions;
 use symphonia::core::probe::Hint;
-use symphonia::core::audio::SampleBuffer;
-use plotters::prelude::*;
-use std::f64::consts;
-use num::complex::*;
-use num::ToPrimitive;
-use std::f32::consts::PI;
-use rustfft::{FftPlanner, num_complex::Complex};
-use std::sync::Arc;
 
 fn main() {
     //--------------------------------------------------------------------
@@ -49,7 +46,7 @@ fn main() {
         .expect("unsupported codec");
 
     let track_id = track.id;
-    
+
     let mut sample_count = 0;
     let mut sample_buf = None;
 
@@ -63,10 +60,12 @@ fn main() {
     chart_builder.margin(10);
     chart_builder.x_label_area_size(30);
     chart_builder.y_label_area_size(30);
-    
-    let mut chart_context = chart_builder.build_cartesian_2d(0.0..10000.0, -0.1..0.1).unwrap();
+
+    let mut chart_context = chart_builder
+        .build_cartesian_2d(0.0..10000.0, -0.1..0.1)
+        .unwrap();
     chart_context.configure_mesh().draw().unwrap();
-    
+
     // pic 2
     let root1 = BitMapBackend::new("plot_2.png", (800, 600)).into_drawing_area();
     root1.fill(&WHITE).unwrap();
@@ -76,11 +75,11 @@ fn main() {
     chart_builder1.margin(10);
     chart_builder1.x_label_area_size(30);
     chart_builder1.y_label_area_size(30);
-    
-    let mut chart_context1 = chart_builder1.build_cartesian_2d(0.0..10000.0, -0.1..0.1).unwrap();
+
+    let mut chart_context1 = chart_builder1
+        .build_cartesian_2d(0.0..10000.0, -0.1..0.1)
+        .unwrap();
     chart_context1.configure_mesh().draw().unwrap();
-
-
 
     // Main decoding loop
     loop {
@@ -88,10 +87,10 @@ fn main() {
             Ok(packet) => packet,
             Err(Error::ResetRequired) => {
                 unimplemented!();
-            },
+            }
             Err(Error::IoError(_)) => {
                 break;
-            },
+            }
             Err(err) => {
                 panic!("{}", err);
             }
@@ -113,24 +112,28 @@ fn main() {
                 if let Some(buf) = &mut sample_buf {
                     buf.copy_interleaved_ref(audio_buf);
 
-                    
                     sample_count += buf.samples().len();
                 }
             }
             Err(Error::DecodeError(_)) => (),
-            Err(_) => { 
+            Err(_) => {
                 break;
-            },
+            }
         }
     }
-    
+
     match sample_buf {
         Some(ref buf) => {
-            let points: Vec<_> = buf.samples().into_iter().enumerate()
+            let points: Vec<_> = buf
+                .samples()
+                .into_iter()
+                .enumerate()
                 .map(|(i, sample)| (i as f64, *sample as f64))
                 .collect();
 
-            chart_context.draw_series(LineSeries::new(points, BLACK)).unwrap();
+            chart_context
+                .draw_series(LineSeries::new(points, BLACK))
+                .unwrap();
 
             root.present().unwrap();
 
@@ -140,19 +143,27 @@ fn main() {
             let samples: Vec<f32> = buf.samples().to_vec();
 
             // Convert f32 samples to Complex<f32>
-            let mut complex_samples: Vec<Complex<f32>> = samples.iter().map(|&x| Complex::new(x, 0.0)).collect();
+            let mut complex_samples: Vec<Complex<f32>> =
+                samples.iter().map(|&x| Complex::new(x, 0.0)).collect();
 
             fft.process(&mut complex_samples);
 
-            let points_1: Vec<_> = complex_samples.iter().enumerate()
+            for i in 0..complex_samples.len() {
+                complex_samples[i] = complex_samples[i] * 1. / complex_samples.len().sqrt() as f32;
+            }
+
+            let points_1: Vec<_> = complex_samples
+                .iter()
+                .enumerate()
                 .map(|(i, sample)| (i as f64, sample.re() as f64))
                 .collect();
-            
-            chart_context1.draw_series(LineSeries::new(points_1, BLACK)).unwrap();
+
+            chart_context1
+                .draw_series(LineSeries::new(points_1, BLACK))
+                .unwrap();
 
             root1.present().unwrap();
         }
         None => {}
     }
 }
-
