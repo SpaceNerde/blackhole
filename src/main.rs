@@ -115,8 +115,6 @@ fn main() {
 
                     
                     sample_count += buf.samples().len();
-//                    println!("Decoded {} samples", sample_count);                    
-                        
                 }
             }
             Err(Error::DecodeError(_)) => (),
@@ -153,8 +151,6 @@ fn main() {
             chart_context1.draw_series(LineSeries::new(points_1, BLACK)).unwrap();
 
             root1.present().unwrap();
-
-
         }
         None => {}
     }
