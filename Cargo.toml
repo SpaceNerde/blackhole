@@ -6,5 +6,6 @@ edition = "2021"
 [dependencies]
 num = "0.4.3"
 plotters = "0.3.6"
+ratatui = "0.27.0"
 rustfft = "6.2.0"
 symphonia = "0.5.4"
