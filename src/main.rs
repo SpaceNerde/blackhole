@@ -138,7 +138,7 @@ fn main() {
             root.present().unwrap();
 
             let mut planner = FftPlanner::new();
-            let fft = planner.plan_fft_forward(buf.len());
+            let fft = planner.plan_fft_inverse(buf.len());
 
             let samples: Vec<f32> = buf.samples().to_vec();
 
