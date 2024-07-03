@@ -22,6 +22,12 @@ impl App {
         }
     }
 
+    pub fn run(&mut self, mut terminal: Terminal<impl Backend>) {
+        while self.running {
+            self.draw(&mut terminal);
+        }
+    }
+
     pub fn update(&self) {
         todo!();
     }
@@ -33,6 +39,5 @@ impl App {
 
 impl Widget for &App {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        todo!();
     }
 }
