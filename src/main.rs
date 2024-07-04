@@ -1,3 +1,5 @@
+// really dont want to do anything today lol....
+
 use ratatui::{
     backend::CrosstermBackend,
     crossterm::{
