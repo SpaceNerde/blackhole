@@ -20,6 +20,8 @@ pub enum State {
 pub struct App {
     pub state: State,
     pub running: bool,
+    pub selected_signal: String,
+    pub char_index: usize,
 }
 
 impl App {
@@ -27,6 +29,8 @@ impl App {
         App {
             state,
             running: true,
+            selected_signal: String::new(),
+            char_index: 0,
         }
     }
 
@@ -48,11 +52,19 @@ impl App {
     pub fn handle_event(&mut self) {
         if let Event::Key(key) = event::read().unwrap() {
             if key.kind == KeyEventKind::Press {
-                match key.code {
-                    KeyCode::Esc => {
-                        self.running = false;
+                match &self.state {
+                    State::DisplaySelect => {
+                        match key.code {
+                            KeyCode::Esc => {
+                                self.running = false;
+                            },
+                            KeyCode::Char(c) => {
+                                self.selected_signal.push(c);
+                            }
+                            _ => (),
+                        }
                     },
-                    _ => (),
+                    State::DisplayMain => todo!()
                 }
             }
         }
@@ -81,7 +93,7 @@ impl App {
             Constraint::Percentage((100 - 60) / 2),
         ]).split(popup_layout[1])[1];
 
-        Paragraph::new("")
+        Paragraph::new(self.selected_signal.clone())
             .block(Block::bordered().title("Select file containing the signal"))
             .gray()
             .render(area, buf);
