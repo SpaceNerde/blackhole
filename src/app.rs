@@ -11,6 +11,7 @@ use ratatui::{
     terminal::Terminal,
     widgets::{block::Title, Block, Borders, LineGauge, Padding, Paragraph, Widget},
 };
+use std::path::Path;
 
 pub enum State {
     DisplaySelect,
@@ -63,6 +64,9 @@ impl App {
                         KeyCode::Backspace => {
                             self.selected_signal.pop();
                         }
+                        KeyCode::Enter => {
+                            self.check_path();         
+                        }
                         _ => (),
                     }
                 },
@@ -97,5 +101,18 @@ impl App {
             .block(Block::bordered().title("Select file containing the signal"))
             .gray()
             .render(area, buf);
+    }
+}
+
+impl App {
+    fn check_path(&mut self) {
+        match Path::new(&self.selected_signal).exists() {
+            true => {
+                self.selected_signal = String::new();
+            },
+            false => {
+                self.selected_signal = "path does not exsist!".to_string();
+            },
+        }
     }
 }
