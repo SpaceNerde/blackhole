@@ -1,30 +1,39 @@
-// really dont want to do anything today lol....
+use std::sync::mpsc;
+use std::thread::JoinHandle;
 
-use ratatui::{
-    backend::CrosstermBackend,
-    crossterm::{
-        terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-        ExecutableCommand,
-    },
-    Terminal,
-};
-use std::io::stdout;
+use eframe::egui;
 
-mod app;
-mod signal;
+fn main() -> eframe::Result {
+    env_logger::init();
+    
+    let options = eframe::NativeOptions {
+        viewport: egui::ViewportBuilder::default().with_inner_size([1024.0, 768.0]),
+        ..Default::default()
+    };
 
-#[tokio::main]
-async fn main() {
-    stdout().execute(EnterAlternateScreen).unwrap();
-    enable_raw_mode().unwrap();
-    let mut terminal = Terminal::new(CrosstermBackend::new(stdout())).unwrap();
+    eframe::run_native(
+        "Blackhole",
+        options,
+        Box::new(|_cc| Ok(Box::new(App::new()))),
+    )
+}
 
-    let mut app = app::App::new(
-        app::State::DisplaySelect
-    );
+#[derive(Default)]
+struct App {
+    file: egui::DroppedFile,
+    path: Option<String>,
+}
 
-    app.run(terminal);
+impl App {
+    fn new() -> Self {
+        App::default() 
+    }
+}
 
-    stdout().execute(LeaveAlternateScreen).unwrap();
-    disable_raw_mode().unwrap();
+impl eframe::App for App {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        egui::CentralPanel::default().show(ctx, |ui| {
+            ui.label("Drag and drop ur file containing the signal");
+        });
+    }
 }
