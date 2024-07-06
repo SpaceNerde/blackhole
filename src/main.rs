@@ -11,6 +11,7 @@ use ratatui::{
 use std::io::stdout;
 
 mod app;
+mod signal;
 
 #[tokio::main]
 async fn main() {

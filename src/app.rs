@@ -9,9 +9,10 @@ use ratatui::{
     layout::{Alignment, Constraint, Layout, Rect},
     style::{palette::tailwind, Color, Style, Stylize},
     terminal::Terminal,
-    widgets::{block::Title, Block, Borders, LineGauge, Padding, Paragraph, Widget},
+    widgets::{block::Title, Block, Borders, LineGauge, Padding, Paragraph, Widget, Chart, Dataset},
 };
 use std::path::Path;
+use crate::signal;
 
 pub enum State {
     DisplaySelect,
@@ -70,7 +71,9 @@ impl App {
                         _ => (),
                     }
                 },
-                State::DisplayMain => todo!()
+                State::DisplayMain => {
+
+                }
                 }
             }
         }
@@ -79,7 +82,10 @@ impl App {
 
 impl Widget for &App {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        self.render_select(area, buf);
+        match self.state {
+            State::DisplaySelect => self.render_select(area, buf),
+            State::DisplayMain => self.render_main(area, buf),
+        }
     }
 }
 
@@ -102,13 +108,30 @@ impl App {
             .gray()
             .render(area, buf);
     }
+
+    fn render_main(&self, area: Rect, buf: &mut Buffer) {
+        let layout = Layout::vertical([
+            Constraint::Percentage(100), 
+        ]);
+
+        self.render_main_chart(area, buf);
+    }
+
+    fn render_main_chart(&self, area: Rect, buf: &mut Buffer) {
+        let data_points = signal::create_data_points(self.selected_signal.clone());
+        let chart = Chart::new(vec![
+            Dataset::default().data(&data_points[0]),
+        ]);
+        
+        chart.render(area, buf)
+    }
 }
 
 impl App {
     fn check_path(&mut self) {
         match Path::new(&self.selected_signal).exists() {
             true => {
-                self.selected_signal = String::new();
+                self.state = State::DisplayMain;
             },
             false => {
                 self.selected_signal = "path does not exsist!".to_string();
