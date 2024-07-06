@@ -5,9 +5,11 @@ edition = "2021"
 
 [dependencies]
 eframe = "0.28.1"
+egui_plot = "0.28.1"
 env_logger = "0.11.3"
 num = "0.4.3"
 plotters = "0.3.6"
+rfd = "0.14.1"
 rustfft = "6.2.0"
 symphonia = "0.5.4"
 winit = "0.30.3"
