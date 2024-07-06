@@ -51,20 +51,22 @@ impl App {
 
     pub fn handle_event(&mut self) {
         if let Event::Key(key) = event::read().unwrap() {
-            if key.kind == KeyEventKind::Press {
-                match &self.state {
-                    State::DisplaySelect => {
-                        match key.code {
-                            KeyCode::Esc => {
-                                self.running = false;
-                            },
-                            KeyCode::Char(c) => {
-                                self.selected_signal.push(c);
-                            }
-                            _ => (),
+            if key.kind == KeyEventKind::Press { match &self.state {
+                State::DisplaySelect => {
+                    match key.code {
+                        KeyCode::Esc => {
+                            self.running = false;
+                        },
+                        KeyCode::Char(c) => {
+                            self.selected_signal.push(c);
+                        },
+                        KeyCode::Backspace => {
+                            self.selected_signal.pop();
                         }
-                    },
-                    State::DisplayMain => todo!()
+                        _ => (),
+                    }
+                },
+                State::DisplayMain => todo!()
                 }
             }
         }
@@ -75,8 +77,6 @@ impl Widget for &App {
     fn render(self, area: Rect, buf: &mut Buffer) {
         self.render_select(area, buf);
     }
-
-    
 }
 
 impl App {
