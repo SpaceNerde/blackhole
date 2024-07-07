@@ -46,7 +46,7 @@ fn decode_signal(signal_path: String) -> SampleBuffer<f32> {
         let packet = match format.next_packet() {
             Ok(packet) => packet,
             Err(Error::ResetRequired) => {
-                unimplemented!();
+                break;
             }
             Err(Error::IoError(_)) => {
                 break;
@@ -88,6 +88,8 @@ fn decode_signal(signal_path: String) -> SampleBuffer<f32> {
 pub fn create_data_points(signal_path: String) -> Vec<Vec<[f64; 2]>> {
     let buf = decode_signal(signal_path);
 
+    println!("{:?}", buf.samples());
+
     let mut points: Vec<Vec<_>> = vec![];
 
     // default sample points
@@ -101,7 +103,7 @@ pub fn create_data_points(signal_path: String) -> Vec<Vec<[f64; 2]>> {
     points.push(points_1);
 
     let mut planner = FftPlanner::new();
-    let fft = planner.plan_fft_inverse(buf.len());
+    let fft = planner.plan_fft_forward(buf.len());
 
     let samples: Vec<f32> = buf.samples().to_vec();
 
@@ -110,10 +112,6 @@ pub fn create_data_points(signal_path: String) -> Vec<Vec<[f64; 2]>> {
         samples.iter().map(|&x| Complex::new(x, 0.0)).collect();
 
     fft.process(&mut complex_samples);
-
-    for i in 0..complex_samples.len() {
-        complex_samples[i] = complex_samples[i] * 1. / complex_samples.len().sqrt() as f32;
-    }
 
     // fft sample points
     let points_2: Vec<_> = complex_samples

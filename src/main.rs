@@ -113,8 +113,8 @@ impl App {
                 // x - Time
                 // y - Amplitude
                 egui_plot::Plot::new("sample_plot")
-                    .allow_zoom(false)
-                    .allow_drag(false)
+                    .allow_zoom(true)
+                    .allow_drag(true)
                     .allow_scroll(false)
                     .height(384.)
                     .legend(Legend::default())
@@ -126,8 +126,8 @@ impl App {
                 // x - Frequency (Hz)
                 // y - Amplitude
                 egui_plot::Plot::new("fft_plot")
-                    .allow_zoom(false)
-                    .allow_drag(false)
+                    .allow_zoom(true)
+                    .allow_drag(true)
                     .allow_scroll(false)
                     .height(384.)
                     .legend(Legend::default())
