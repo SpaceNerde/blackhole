@@ -86,17 +86,17 @@ fn decode_signal(signal_path: String) -> SampleBuffer<f32> {
     sample_buf.expect("could not decode signal")
 }
 
-pub fn create_data_points(signal_path: String) -> Vec<Vec<(f64, f64)>> {
+pub fn create_data_points(signal_path: String) -> Vec<Vec<[f64; 2]>> {
     let buf = decode_signal(signal_path);
 
-    let mut points: Vec<Vec<_>> = Vec::new();
+    let mut points: Vec<Vec<_>> = vec![];
 
     // default sample points
     let points_1: Vec<_> = buf
         .samples()
         .into_iter()
         .enumerate()
-        .map(|(i, sample)| (i as f64, *sample as f64))
+        .map(|(i, sample)| [i as f64, *sample as f64])
         .collect();
 
     points.push(points_1);
@@ -120,7 +120,7 @@ pub fn create_data_points(signal_path: String) -> Vec<Vec<(f64, f64)>> {
     let points_2: Vec<_> = complex_samples
         .iter()
         .enumerate()
-        .map(|(i, sample)| (i as f64, sample.re() as f64))
+        .map(|(i, sample)| [i as f64, sample.re() as f64])
         .collect();
 
     points.push(points_2);

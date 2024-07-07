@@ -31,6 +31,7 @@ struct App {
     dropped_files: Vec<egui::DroppedFile>,
     path: Option<String>,
     fft: bool,
+    points: Vec<Vec<[f64; 2]>>,
 }
 
 impl App {
@@ -59,6 +60,7 @@ impl App {
                 
             if ui.button("Commit").clicked() {
                 self.path = Some(self.dropped_files[0].path.clone().unwrap().display().to_string());
+                self.points = signal::create_data_points(self.path.clone().unwrap());
                 self.state = State::Plot;
             }
 
@@ -100,17 +102,27 @@ impl App {
     }
 
     fn render_plots(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        // let points = signal::create_data_points(self.path.clone().unwrap());
-
         egui::CentralPanel::default().show(ctx, |ui| {
-            egui_plot::Plot::new("plot")
-                .allow_zoom(false)
-                .allow_drag(false)
-                .allow_scroll(false)
-                .legend(Legend::default())
-                .show(ui, |plot_ui| {
-                    plot_ui.line(Line::new(PlotPoints::new( vec![[1.0, 2.0], [2.0, 3.0]].into() )).name("Samples"));
+            ui.vertical(|ui| {
+                egui_plot::Plot::new("sample_plot")
+                    .allow_zoom(false)
+                    .allow_drag(false)
+                    .allow_scroll(false)
+                    .height(384.)
+                    .legend(Legend::default())
+                    .show(ui, |plot_ui| {
+                        plot_ui.line(Line::new(PlotPoints::new(self.points[0].clone())).name("Samples"));
                 });
+                egui_plot::Plot::new("fft_plot")
+                    .allow_zoom(false)
+                    .allow_drag(false)
+                    .allow_scroll(false)
+                    .height(384.)
+                    .legend(Legend::default())
+                    .show(ui, |plot_ui| {
+                        plot_ui.line(Line::new(PlotPoints::new(self.points[1].clone())).name("FFT"));
+                });
+            });
         });
     }
 }
