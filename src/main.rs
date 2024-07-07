@@ -5,7 +5,7 @@ mod signal;
 
 fn main() -> eframe::Result {
     env_logger::init();
-    
+
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default().with_inner_size([1024.0, 768.0]),
         ..Default::default()
@@ -21,8 +21,8 @@ fn main() -> eframe::Result {
 #[derive(Default)]
 enum State {
     #[default]
-    DragAndDrop, 
-    Plot
+    DragAndDrop,
+    Plot,
 }
 
 #[derive(Default)]
@@ -30,13 +30,12 @@ struct App {
     state: State,
     dropped_files: Vec<egui::DroppedFile>,
     path: Option<String>,
-    fft: bool,
     points: Vec<Vec<[f64; 2]>>,
 }
 
 impl App {
     fn new() -> Self {
-        App::default() 
+        App::default()
     }
 }
 
@@ -45,10 +44,10 @@ impl eframe::App for App {
         match self.state {
             State::DragAndDrop => {
                 self.render_drag_and_drop(ctx, frame);
-            },
+            }
             State::Plot => {
                 self.render_plots(ctx, frame);
-            },
+            }
         }
     }
 }
@@ -57,9 +56,16 @@ impl App {
     fn render_drag_and_drop(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.label("Drag and drop ur file containing the signal");
-                
+
             if ui.button("Commit").clicked() {
-                self.path = Some(self.dropped_files[0].path.clone().unwrap().display().to_string());
+                self.path = Some(
+                    self.dropped_files[0]
+                        .path
+                        .clone()
+                        .unwrap()
+                        .display()
+                        .to_string(),
+                );
                 self.points = signal::create_data_points(self.path.clone().unwrap());
                 self.state = State::Plot;
             }
@@ -111,8 +117,10 @@ impl App {
                     .height(384.)
                     .legend(Legend::default())
                     .show(ui, |plot_ui| {
-                        plot_ui.line(Line::new(PlotPoints::new(self.points[0].clone())).name("Samples"));
-                });
+                        plot_ui.line(
+                            Line::new(PlotPoints::new(self.points[0].clone())).name("Samples"),
+                        );
+                    });
                 egui_plot::Plot::new("fft_plot")
                     .allow_zoom(false)
                     .allow_drag(false)
@@ -120,8 +128,9 @@ impl App {
                     .height(384.)
                     .legend(Legend::default())
                     .show(ui, |plot_ui| {
-                        plot_ui.line(Line::new(PlotPoints::new(self.points[1].clone())).name("FFT"));
-                });
+                        plot_ui
+                            .line(Line::new(PlotPoints::new(self.points[1].clone())).name("FFT"));
+                    });
             });
         });
     }

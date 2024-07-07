@@ -1,6 +1,5 @@
 use num::complex::*;
 use num::integer::Roots;
-use plotters::prelude::*;
 use rustfft::{num_complex::Complex, FftPlanner};
 use symphonia::core::audio::SampleBuffer;
 use symphonia::core::codecs::{DecoderOptions, CODEC_TYPE_NULL};
@@ -108,7 +107,7 @@ pub fn create_data_points(signal_path: String) -> Vec<Vec<[f64; 2]>> {
 
     // Convert f32 samples to Complex<f32>
     let mut complex_samples: Vec<Complex<f32>> =
-    samples.iter().map(|&x| Complex::new(x, 0.0)).collect();
+        samples.iter().map(|&x| Complex::new(x, 0.0)).collect();
 
     fft.process(&mut complex_samples);
 
