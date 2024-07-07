@@ -1,169 +1,128 @@
-use num::complex::*;
-use num::integer::Roots;
-use plotters::prelude::*;
-use rustfft::{num_complex::Complex, FftPlanner};
-use symphonia::core::audio::SampleBuffer;
-use symphonia::core::codecs::{DecoderOptions, CODEC_TYPE_NULL};
-use symphonia::core::errors::Error;
-use symphonia::core::formats::FormatOptions;
-use symphonia::core::io::MediaSourceStream;
-use symphonia::core::meta::MetadataOptions;
-use symphonia::core::probe::Hint;
+use eframe::egui;
+use egui_plot::{Legend, Line, PlotPoints};
 
-fn main() {
-    //--------------------------------------------------------------------
-    //  WEIRD MATH NERD STUFF
-    //--------------------------------------------------------------------
+mod signal;
 
-    let args: Vec<String> = std::env::args().collect();
-    let path = args.get(1).expect("file path not provided");
+fn main() -> eframe::Result {
+    env_logger::init();
+    
+    let options = eframe::NativeOptions {
+        viewport: egui::ViewportBuilder::default().with_inner_size([1024.0, 768.0]),
+        ..Default::default()
+    };
 
-    let src = std::fs::File::open(path).expect("failed to open file");
-    let mss = MediaSourceStream::new(Box::new(src), Default::default());
+    eframe::run_native(
+        "Blackhole",
+        options,
+        Box::new(|_cc| Ok(Box::new(App::new()))),
+    )
+}
 
-    let mut hint = Hint::new();
-    hint.with_extension("flac");
+#[derive(Default)]
+enum State {
+    #[default]
+    DragAndDrop, 
+    Plot
+}
 
-    let meta_opts: MetadataOptions = Default::default();
-    let fmt_opts: FormatOptions = Default::default();
+#[derive(Default)]
+struct App {
+    state: State,
+    dropped_files: Vec<egui::DroppedFile>,
+    path: Option<String>,
+    fft: bool,
+    points: Vec<Vec<[f64; 2]>>,
+}
 
-    let probed = symphonia::default::get_probe()
-        .format(&hint, mss, &fmt_opts, &meta_opts)
-        .expect("unsupported format");
+impl App {
+    fn new() -> Self {
+        App::default() 
+    }
+}
 
-    let mut format = probed.format;
-
-    let track = format
-        .tracks()
-        .iter()
-        .find(|t| t.codec_params.codec != CODEC_TYPE_NULL)
-        .expect("no supported audio tracks");
-
-    let dec_opts: DecoderOptions = Default::default();
-
-    let mut decoder = symphonia::default::get_codecs()
-        .make(&track.codec_params, &dec_opts)
-        .expect("unsupported codec");
-
-    let track_id = track.id;
-
-    let mut sample_count = 0;
-    let mut sample_buf = None;
-
-    // setup plotters
-    // pic 1
-    let root = BitMapBackend::new("plot_1.png", (800, 600)).into_drawing_area();
-    root.fill(&WHITE).unwrap();
-
-    let mut chart_builder = ChartBuilder::on(&root);
-    chart_builder.caption("Blackhole", ("sans-serif", 50).into_font());
-    chart_builder.margin(10);
-    chart_builder.x_label_area_size(30);
-    chart_builder.y_label_area_size(30);
-
-    let mut chart_context = chart_builder
-        .build_cartesian_2d(0.0..10000.0, -0.1..0.1)
-        .unwrap();
-    chart_context.configure_mesh().draw().unwrap();
-
-    // pic 2
-    let root1 = BitMapBackend::new("plot_2.png", (800, 600)).into_drawing_area();
-    root1.fill(&WHITE).unwrap();
-
-    let mut chart_builder1 = ChartBuilder::on(&root1);
-    chart_builder1.caption("Blackhole", ("sans-serif", 50).into_font());
-    chart_builder1.margin(10);
-    chart_builder1.x_label_area_size(30);
-    chart_builder1.y_label_area_size(30);
-
-    let mut chart_context1 = chart_builder1
-        .build_cartesian_2d(0.0..10000.0, -0.1..0.1)
-        .unwrap();
-    chart_context1.configure_mesh().draw().unwrap();
-
-    // Main decoding loop
-    loop {
-        let packet = match format.next_packet() {
-            Ok(packet) => packet,
-            Err(Error::ResetRequired) => {
-                unimplemented!();
-            }
-            Err(Error::IoError(_)) => {
-                break;
-            }
-            Err(err) => {
-                panic!("{}", err);
-            }
-        };
-
-        if packet.track_id() != track_id {
-            continue;
-        }
-
-        match decoder.decode(&packet) {
-            Ok(audio_buf) => {
-                if sample_buf.is_none() {
-                    let spec = *audio_buf.spec();
-                    let duration = audio_buf.capacity() as u64;
-
-                    sample_buf = Some(SampleBuffer::<f32>::new(duration, spec));
-                }
-
-                if let Some(buf) = &mut sample_buf {
-                    buf.copy_interleaved_ref(audio_buf);
-
-                    sample_count += buf.samples().len();
-                }
-            }
-            Err(Error::DecodeError(_)) => (),
-            Err(_) => {
-                break;
-            }
+impl eframe::App for App {
+    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        match self.state {
+            State::DragAndDrop => {
+                self.render_drag_and_drop(ctx, frame);
+            },
+            State::Plot => {
+                self.render_plots(ctx, frame);
+            },
         }
     }
+}
 
-    match sample_buf {
-        Some(ref buf) => {
-            let points: Vec<_> = buf
-                .samples()
-                .into_iter()
-                .enumerate()
-                .map(|(i, sample)| (i as f64, *sample as f64))
-                .collect();
-
-            chart_context
-                .draw_series(LineSeries::new(points, BLACK))
-                .unwrap();
-
-            root.present().unwrap();
-
-            let mut planner = FftPlanner::new();
-            let fft = planner.plan_fft_inverse(buf.len());
-
-            let samples: Vec<f32> = buf.samples().to_vec();
-
-            // Convert f32 samples to Complex<f32>
-            let mut complex_samples: Vec<Complex<f32>> =
-                samples.iter().map(|&x| Complex::new(x, 0.0)).collect();
-
-            fft.process(&mut complex_samples);
-
-            for i in 0..complex_samples.len() {
-                complex_samples[i] = complex_samples[i] * 1. / complex_samples.len().sqrt() as f32;
+impl App {
+    fn render_drag_and_drop(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        egui::CentralPanel::default().show(ctx, |ui| {
+            ui.label("Drag and drop ur file containing the signal");
+                
+            if ui.button("Commit").clicked() {
+                self.path = Some(self.dropped_files[0].path.clone().unwrap().display().to_string());
+                self.points = signal::create_data_points(self.path.clone().unwrap());
+                self.state = State::Plot;
             }
 
-            let points_1: Vec<_> = complex_samples
-                .iter()
-                .enumerate()
-                .map(|(i, sample)| (i as f64, sample.re() as f64))
-                .collect();
+            if !self.dropped_files.is_empty() {
+                ui.group(|ui| {
+                    ui.label("Dropped files:");
 
-            chart_context1
-                .draw_series(LineSeries::new(points_1, BLACK))
-                .unwrap();
+                    for file in &self.dropped_files {
+                        let mut info = if let Some(path) = &file.path {
+                            path.display().to_string()
+                        } else if !file.name.is_empty() {
+                            file.name.clone()
+                        } else {
+                            "???".to_owned()
+                        };
 
-            root1.present().unwrap();
-        }
-        None => {}
+                        let mut additional_info = vec![];
+                        if !file.mime.is_empty() {
+                            additional_info.push(format!("type: {}", file.mime));
+                        }
+                        if let Some(bytes) = &file.bytes {
+                            additional_info.push(format!("{} bytes", bytes.len()));
+                        }
+                        if !additional_info.is_empty() {
+                            info += &format!(" ({})", additional_info.join(", "));
+                        }
+
+                        ui.label(info);
+                    }
+                });
+            }
+        });
+
+        ctx.input(|i| {
+            if !i.raw.dropped_files.is_empty() {
+                self.dropped_files.clone_from(&i.raw.dropped_files);
+            }
+        });
+    }
+
+    fn render_plots(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        egui::CentralPanel::default().show(ctx, |ui| {
+            ui.vertical(|ui| {
+                egui_plot::Plot::new("sample_plot")
+                    .allow_zoom(false)
+                    .allow_drag(false)
+                    .allow_scroll(false)
+                    .height(384.)
+                    .legend(Legend::default())
+                    .show(ui, |plot_ui| {
+                        plot_ui.line(Line::new(PlotPoints::new(self.points[0].clone())).name("Samples"));
+                });
+                egui_plot::Plot::new("fft_plot")
+                    .allow_zoom(false)
+                    .allow_drag(false)
+                    .allow_scroll(false)
+                    .height(384.)
+                    .legend(Legend::default())
+                    .show(ui, |plot_ui| {
+                        plot_ui.line(Line::new(PlotPoints::new(self.points[1].clone())).name("FFT"));
+                });
+            });
+        });
     }
 }
