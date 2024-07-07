@@ -110,6 +110,8 @@ impl App {
     fn render_plots(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.vertical(|ui| {
+                // x - Time
+                // y - Amplitude
                 egui_plot::Plot::new("sample_plot")
                     .allow_zoom(false)
                     .allow_drag(false)
@@ -121,6 +123,8 @@ impl App {
                             Line::new(PlotPoints::new(self.points[0].clone())).name("Samples"),
                         );
                     });
+                // x - Frequency (Hz)
+                // y - Amplitude
                 egui_plot::Plot::new("fft_plot")
                     .allow_zoom(false)
                     .allow_drag(false)
