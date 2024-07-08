@@ -88,8 +88,6 @@ fn decode_signal(signal_path: String) -> SampleBuffer<f32> {
 pub fn create_data_points(signal_path: String) -> Vec<Vec<[f64; 2]>> {
     let buf = decode_signal(signal_path);
 
-    println!("{:?}", buf.samples());
-
     let mut points: Vec<Vec<_>> = vec![];
 
     // default sample points
